@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Escaneo de red para descubrir dispositivos activos
+echo "[+] Escaneando red local..."
+nmap -sn 192.168.0.0/24 -oG - | awk '/Up$/{print ip}' > dispositivos.txt
+
+# Iterar sobre cada IP activa
+echo "[+] Analizando dispositivos..."
+while read ip; do
+    echo "→ Analizando $ip"
+
+    # Obtener dirección MAC y fabricante
+    mac=$(nmap -sP $ip | awk '/MAC Address:/{print $3}')
+    fabricante=$(nmap -sP $ip | awk -F 'MAC Address: ' '/MAC Address:/{print $2}' | cut -d' ' -f2-)
+
+    # Verificar si el fabricante coincide con marcas de Smart TV
+    if [[ "$fabricante" =~ (Hisense|Samsung|LG|Sony|TCL|Philips|Panasonic|Sharp|Vizio) ]]; then
+        echo "[✔] Posible Smart TV detectado: $ip ($fabricante)"
+    fi
+done < <(awk '/Status: Up/{getline; print $2}' dispositivos.txt)
